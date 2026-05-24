@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace SimpleCQRS.Tests;
 
+public record UnknownQuery : IRequest<string>;
+
 public record LoggingQuery(int Value) : IRequest<int>;
 
 public class LoggingQueryHandler : IRequestHandler<LoggingQuery, int>

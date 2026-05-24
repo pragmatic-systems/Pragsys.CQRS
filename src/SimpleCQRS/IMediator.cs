@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
+using System.Numerics;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -45,8 +47,19 @@ public class Mediator(IServiceProvider provider)
 
             Func<Task<TResponse>> handlerDelegate = () =>
             {
-                var result = cacheEntry.HandlerMethod.Invoke(handler, new object[] { request, cancellationToken });
-                return (Task<TResponse>)result;
+                var handlerParam = Expression.Parameter(cacheEntry.HandlerType, "handler");
+                var requestParam = Expression.Parameter(requestType, "request");
+                var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+                var handleMethod = cacheEntry.HandlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) });
+
+                MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, ct);
+
+                var compiled = Expression.Lambda(expr, handlerParam, requestParam, ct).Compile();
+
+                var taskResult = compiled.DynamicInvoke(handler, request, cancellationToken);
+
+                return (Task<TResponse>)taskResult;
             };
 
             foreach (var behavior in behaviors)

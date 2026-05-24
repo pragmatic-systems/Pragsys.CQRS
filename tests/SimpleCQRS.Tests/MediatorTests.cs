@@ -1,5 +1,8 @@
-﻿using FluentAssertions.Common;
+﻿using System.Linq.Expressions;
+using FluentAssertions;
+using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Sdk;
 
@@ -80,7 +83,7 @@ public class MediatorTests
     }
 
     [Fact]
-    public async Task SendVoid_WithBehavior_ChainsBehaviorAroundHandler()
+    public async Task SendVoid_WithMultipleBehaviors_ChainsBehaviorAroundHandler()
     {
         var logs = new List<string>();
         var behaviorA = new VoidLoggingBehavior("A", logs);
@@ -103,8 +106,6 @@ public class MediatorTests
         ], logs);
     }
 
-    public record UnknownQuery : IRequest<string>;
-
     [Fact]
     public async Task Send_WithMissingHandler_ThrowsInvalidOperationException()
     {
@@ -113,5 +114,57 @@ public class MediatorTests
 
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             mediator.Send(new UnknownQuery()));
+    }
+}
+
+public class ExpressionTests()
+{
+    public class SomeClass
+    {
+        public Version Version { get; set; }
+    }
+
+    [Fact]
+    public async Task HandlerTest()
+    {
+        var h = Expression.Parameter(typeof(LoggingQueryHandler), "handler");
+        var r = Expression.Parameter(typeof(LoggingQuery), "request");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = typeof(LoggingQueryHandler).GetMethod("Handle", new[] { typeof(LoggingQuery), typeof(CancellationToken) });
+
+        MethodCallExpression expr = Expression.Call(h, handleMethod, r, ct);
+
+        var compiled = Expression.Lambda(expr, h, r, ct).Compile();
+
+        var taskResult = compiled.DynamicInvoke(new LoggingQueryHandler(), new LoggingQuery(2), CancellationToken.None);
+        var result = await (Task<int>)taskResult;
+        result.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task HandlerTestAlt()
+    {
+        var compiled = BuildCompiled<LoggingQueryHandler, LoggingQuery>();
+
+        var taskResult = compiled.DynamicInvoke(new LoggingQueryHandler(), new LoggingQuery(2), CancellationToken.None);
+        var result = await (Task<int>)taskResult;
+        result.Should().Be(4);
+    }
+
+    private Delegate BuildCompiled<THandler, TRequest>()
+    {
+        var handlerType = typeof(THandler);
+        var requestType = typeof(TRequest);
+
+        var handler = Expression.Parameter(handlerType, "handler");
+        var request = Expression.Parameter(requestType, "request");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) });
+
+        MethodCallExpression expr = Expression.Call(handler, handleMethod, request, ct);
+
+        return Expression.Lambda(expr, handler, request, ct).Compile();
     }
 }
