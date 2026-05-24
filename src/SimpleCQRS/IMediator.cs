@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,10 +13,13 @@ public interface IMediator
         where TRequest : IRequest;
 }
 
-internal class Mediator(IServiceProvider provider)
+public class Mediator(IServiceProvider provider)
     : IMediator
 {
-    private sealed record MediatorCacheEntry(Type HandlerType, Type BehaviorType, MethodInfo HandlerMethod, MethodInfo BehaviorMethod)
+
+    private sealed record MediatorMap(Type Type, Delegate Method);
+
+    private sealed record MediatorCacheEntry(MediatorMap Handler, MediatorMap Behaviour)
     {
     }
 
@@ -23,56 +27,154 @@ internal class Mediator(IServiceProvider provider)
 
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        var requestType = request.GetType();
-        var responseType = typeof(TResponse);
-
-        var cacheEntry = _cache.GetOrAdd((requestType, responseType), _ =>
+        try
         {
-            var ht = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
-            var bt = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
+            var requestType = request.GetType();
+            var responseType = typeof(TResponse);
 
-            return new MediatorCacheEntry(
-                ht,
-                bt,
-                ht.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)!,
-                bt.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)!);
-        });
-
-        var handler = provider.GetRequiredService(cacheEntry.HandlerType);
-        var behaviors = provider.GetServices(cacheEntry.BehaviorType).Reverse();
-
-        Func<Task<TResponse>> handlerDelegate = () =>
-        {
-            var result = cacheEntry.HandlerMethod.Invoke(handler, new object[] { request, cancellationToken });
-            return (Task<TResponse>)result;
-        };
-
-        foreach (var behavior in behaviors)
-        {
-            var next = handlerDelegate;
-            handlerDelegate = () =>
+            var cacheEntry = _cache.GetOrAdd((requestType, responseType), _ =>
             {
-                var result = cacheEntry.BehaviorMethod.Invoke(behavior, new object[] { request, next, cancellationToken });
-                return (Task<TResponse>)result;
-            };
-        }
+                var handlerMap = GetHanderMap(requestType, responseType);
+                var behaviourMap = GetBehaviourMap(requestType, responseType);
 
-        return await handlerDelegate();
+                var bt = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
+
+                return new MediatorCacheEntry(
+                    handlerMap,
+                    behaviourMap);
+            });
+
+            var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
+            var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
+
+            Func<Task<TResponse>> handlerDelegate = () =>
+            {
+                return (Task<TResponse>)cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken);
+            };
+
+            foreach (var behavior in behaviors)
+            {
+                var next = handlerDelegate;
+                handlerDelegate = () =>
+                {
+                    var result = cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken);
+                    return (Task<TResponse>)result;
+                };
+            }
+
+            return await handlerDelegate();
+        }
+        catch (TargetInvocationException ex)
+        {
+            // Unpack the reflection error here.
+            throw ex.InnerException ?? ex;
+        }
     }
 
-    public async Task Send<TRequest>(TRequest query, CancellationToken cancellationToken = default)
+    public async Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IRequest
     {
-        var handler = provider.GetRequiredService<IRequestHandler<TRequest>>();
-        var behaviors = provider.GetServices<IPipelineBehavior<TRequest>>().Reverse();
-
-        Func<Task> handlerDelegate = () => handler.Handle(query, cancellationToken);
-        foreach (var behavior in behaviors)
+        try
         {
-            var next = handlerDelegate;
-            handlerDelegate = () => behavior.Handle(query, next, cancellationToken);
-        }
+            var requestType = request.GetType();
 
-        await handlerDelegate();
+            var cacheEntry = _cache.GetOrAdd((requestType, null), _ =>
+            {
+                var handlerMap = GetHanderMap(requestType);
+                var behaviourMap = GetBehaviourMap(requestType);
+
+                var bt = typeof(IPipelineBehavior<>).MakeGenericType(requestType);
+
+                return new MediatorCacheEntry(
+                    handlerMap,
+                    behaviourMap);
+            });
+
+            var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
+            var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
+
+            Func<Task> handlerDelegate = () =>
+            {
+                return (Task) cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken);
+            };
+
+            foreach (var behavior in behaviors)
+            {
+                var next = handlerDelegate;
+                handlerDelegate = () =>
+                {
+                    return (Task) cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken);
+                };
+            }
+
+            await handlerDelegate();
+        }
+        catch (TargetInvocationException ex)
+        {
+            // Unpack the reflection error here.
+            throw ex.InnerException ?? ex;
+        }
+    }
+
+    private static MediatorMap GetHanderMap(Type requestType, Type responseType)
+    {
+        var handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
+        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var requestParam = Expression.Parameter(requestType, "request");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) });
+        MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, ct);
+        var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, ct).Compile();
+
+        return new MediatorMap(handlerType, handlerDelegate);
+    }
+
+    private static MediatorMap GetHanderMap(Type requestType)
+    {
+        var handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
+        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var requestParam = Expression.Parameter(requestType, "request");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) });
+        MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, ct);
+        var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, ct).Compile();
+
+        return new MediatorMap(handlerType, handlerDelegate);
+    }
+
+    private static MediatorMap GetBehaviourMap(Type requestType, Type responseType)
+    {
+        var handlerType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
+        var nextType = typeof(Func<>).MakeGenericType(typeof(Task<>).MakeGenericType(responseType));
+
+        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var requestParam = Expression.Parameter(requestType, "input");
+        var nextParam = Expression.Parameter(nextType, "next");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = handlerType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) });
+        MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, nextParam, ct);
+        var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, nextParam, ct).Compile();
+
+        return new MediatorMap(handlerType, handlerDelegate);
+    }
+
+    private static MediatorMap GetBehaviourMap(Type requestType)
+    {
+        var handlerType = typeof(IPipelineBehavior<>).MakeGenericType(requestType);
+        var nextType = typeof(Func<>).MakeGenericType(typeof(Task));
+
+        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var requestParam = Expression.Parameter(requestType, "input");
+        var nextParam = Expression.Parameter(nextType, "next");
+        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
+
+        var handleMethod = handlerType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) });
+        MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, nextParam, ct);
+        var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, nextParam, ct).Compile();
+
+        return new MediatorMap(handlerType, handlerDelegate);
     }
 }
