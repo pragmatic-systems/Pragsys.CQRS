@@ -7,6 +7,16 @@ public class MediatorConfig(IServiceCollection Services)
 {
     public void RegisterServicesFromAssemblies(params Assembly[] targetAssemblies)
     {
+        RegisterServicesFromAssemblies(targetAssemblies, ServiceLifetime.Transient);
+    }
+
+    public void RegisterServicesFromAssemblies(ServiceLifetime serviceLifetime, params Assembly[] targetAssemblies)
+    {
+        RegisterServicesFromAssemblies(targetAssemblies, serviceLifetime);
+    }
+
+    public void RegisterServicesFromAssemblies(Assembly[] targetAssemblies, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
+    {
         if (Services == null) throw new ArgumentNullException(nameof(Services));
         if (targetAssemblies == null) throw new ArgumentNullException(nameof(targetAssemblies));
 
@@ -37,18 +47,14 @@ public class MediatorConfig(IServiceCollection Services)
                     {
                         var requestType = iface.GetGenericArguments()[0];
                         var resultType = iface.GetGenericArguments()[1];
-
-                        Services.AddTransient(
-                            typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType),
-                            type);
+                        var genericType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
+                        Services.Add(new ServiceDescriptor(genericType, type, serviceLifetime));
                     }
                     else if (genericDef == handlerWithoutResultInterface)
                     {
                         var requestType = iface.GetGenericArguments()[0];
-
-                        Services.AddTransient(
-                            typeof(IRequestHandler<>).MakeGenericType(requestType),
-                            type);
+                        var genericType = typeof(IRequestHandler<>).MakeGenericType(requestType);
+                        Services.Add(new ServiceDescriptor(genericType, type, serviceLifetime));
                     }
                 }
             }

@@ -1,54 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FluentAssertions.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Sdk;
 
 namespace SimpleCQRS.Tests;
 
 public class MediatorTests
 {
-    private IServiceProvider BuildContainer()
+    private IServiceProvider BuildContainer(params IPipelineBehavior[] pipelines)
     {
         var services = new ServiceCollection();
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssemblies(
-                typeof(MediatorTests).Assembly);
-        });
-
+        services.InitializeServices(pipelines);
         return services.BuildServiceProvider();
-    }
-
-    public record GetUserQuery(int Id) : IRequest<string>;
-
-    public class GetUserQueryHandler : IRequestHandler<GetUserQuery, string>
-    {
-        public Task<string> Handle(GetUserQuery query, CancellationToken cancellationToken = default)
-            => Task.FromResult($"User-{query.Id}");
-    }
-
-
-    public record SendCommand : IRequest;
-
-    public class SendCommandHandler : IRequestHandler<SendCommand>
-    {
-        public int CallCount { get; private set; }
-
-        public Task Handle(SendCommand query, CancellationToken cancellationToken = default)
-        {
-            CallCount++;
-            return Task.CompletedTask;
-        }
-    }
-
-
-    [Fact]
-    public async Task Send_WithResult_ReturnsHandlerResult()
-    {
-        var provider = BuildContainer();
-        var mediator = provider.GetService<IMediator>();
-
-        var result = await mediator.Send(new GetUserQuery(42));
-
-        Assert.Equal("User-42", result);
     }
 
     [Fact]
@@ -58,36 +21,26 @@ public class MediatorTests
         await cts.CancelAsync();
 
         var provider = BuildContainer();
-        var mediator = provider.GetService<IMediator>();
+        var mediator = provider.GetRequiredService<IMediator>();
 
-        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            mediator.Send(new GetUserQuery(1), cts.Token));
-        //Assert.IsInstanceOf<OperationCanceledException>(ex);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            mediator.Send(new LoggingQuery(1), cts.Token));
     }
 
     [Fact]
     public async Task Send_WithResult_CachesReflection()
     {
         var provider = BuildContainer();
-        var mediator = provider.GetService<IMediator>();
+        var mediator = provider.GetRequiredService<IMediator>();
 
-        var t1 = await mediator.Send(new GetUserQuery(1), TestContext.Current.CancellationToken);
-        var t2 = await mediator.Send(new GetUserQuery(2), TestContext.Current.CancellationToken);
+        var t1 = await mediator.Send(new LoggingQuery(1), TestContext.Current.CancellationToken);
+        var t2 = await mediator.Send(new LoggingQuery(2), TestContext.Current.CancellationToken);
+        var handler = (LoggingQueryHandler)provider.GetRequiredService<IRequestHandler<LoggingQuery, int>>();
 
-        Assert.Equal("User-1", t1);
-        Assert.Equal("User-2", t2);
-    }
+        Assert.Equal(2, t1);
+        Assert.Equal(4, t2);
 
-    [Fact]
-    public async Task Send_WithoutResult_CallsHandler()
-    {
-        var provider = BuildContainer();
-        var mediator = provider.GetService<IMediator>();
-
-        await mediator.Send(new SendCommand(), TestContext.Current.CancellationToken);
-
-        var handler = provider.GetService<SendCommandHandler>();
-        Assert.Equal(1, handler.CallCount);
+        Assert.Equal(2, handler.InvocationCount);
     }
 
     [Fact]
@@ -96,97 +49,25 @@ public class MediatorTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        var services = new ServiceCollection();
-        services.AddSingleton<IRequestHandler<SendCommand>>(new SendCommandHandler());
-        services.AddSingleton(typeof(IRequestHandler<,>), typeof(GetUserQueryHandler));
-        var provider = services.BuildServiceProvider();
-        var mediator = new Mediator(provider);
+        var provider = BuildContainer();
+        var mediator = provider.GetRequiredService<IMediator>();
 
-        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            mediator.Send(new SendCommand(), cts.Token));
-        //Assert.IsInstanceOf<OperationCanceledException>(ex);
-    }
-
-    public record LoggingQuery(int Value) : IRequest<int>;
-
-    public class LoggingQueryHandler : IRequestHandler<LoggingQuery, int>
-    {
-        public int InvocationCount { get; private set; }
-
-        public Task<int> Handle(LoggingQuery query, CancellationToken cancellationToken = default)
-        {
-            InvocationCount++;
-            return Task.FromResult(query.Value * 2);
-        }
-    }
-
-    public class LoggingBehavior : IPipelineBehavior<LoggingQuery, int>
-    {
-        public List<string> Log { get; } = new();
-
-        public async Task<int> Handle(LoggingQuery input, Func<Task<int>> next, CancellationToken cancellationToken = default)
-        {
-            Log.Add("before");
-            var result = await next();
-            Log.Add("after");
-            return result;
-        }
-    }
-
-    [Fact]
-    public async Task Send_WithBehavior_ChainsBehaviorAroundHandler()
-    {
-        var handler = new LoggingQueryHandler();
-        var behavior = new LoggingBehavior();
-
-        var services = new ServiceCollection();
-        services.AddSingleton(handler);
-        services.AddSingleton(behavior);
-        services.AddSingleton(typeof(IRequestHandler<,>), typeof(GetUserQueryHandler));
-        services.AddSingleton(typeof(IRequestHandler<>), typeof(SendCommandHandler));
-        var provider = services.BuildServiceProvider();
-        var mediator = new Mediator(provider);
-
-        var result = await mediator.Send(new LoggingQuery(21), TestContext.Current.CancellationToken);
-
-        Assert.Equal(42, result);
-        Assert.Equal(["before", "after"], behavior.Log);
-        Assert.Equal(1, handler.InvocationCount);
-    }
-
-    public class ReverseOrderBehavior : IPipelineBehavior<LoggingQuery, int>
-    {
-        public string Name { get; }
-        public List<string> Log { get; } = new ();
-
-        public ReverseOrderBehavior(string name) => Name = name;
-
-        public async Task<int> Handle(LoggingQuery input, Func<Task<int>> next, CancellationToken cancellationToken = default)
-        {
-            Log.Add($"{Name}-before");
-            var result = await next();
-            Log.Add($"{Name}-after");
-            return result;
-        }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            mediator.Send(new VoidLoggingCommand(), cts.Token));
     }
 
     [Fact]
     public async Task Send_WithMultipleBehaviors_ChainsInReverseOrder()
     {
-        var handler = new LoggingQueryHandler();
-        var behaviorA = new ReverseOrderBehavior("A");
-        var behaviorB = new ReverseOrderBehavior("B");
+        var logs = new List<string>();
+        var behaviorA = new LoggingBehavior("A", logs);
+        var behaviorB = new LoggingBehavior("B", logs);
 
-        var services = new ServiceCollection();
-        services.AddSingleton(handler);
-        services.AddSingleton(behaviorA);
-        services.AddSingleton(behaviorB);
-        services.AddSingleton(typeof(IRequestHandler<,>), typeof(GetUserQueryHandler));
-        services.AddSingleton(typeof(IRequestHandler<>), typeof(SendCommandHandler));
-        var provider = services.BuildServiceProvider();
-        var mediator = new Mediator(provider);
+        var provider = BuildContainer(behaviorA, behaviorB);
+        var mediator = provider.GetRequiredService<IMediator>();
 
         await mediator.Send(new LoggingQuery(1));
+        var handler = (LoggingQueryHandler)provider.GetRequiredService<IRequestHandler<LoggingQuery, int>>();
 
         // Behaviors chain in reverse: B wraps A wraps handler
         Assert.Equal([
@@ -194,52 +75,32 @@ public class MediatorTests
             "A-before",
             "A-after",
             "B-after"
-        ], behaviorB.Log);
-    }
-
-    public record VoidLoggingCommand : IRequest;
-
-    public class VoidLoggingCommandHandler : IRequestHandler<VoidLoggingCommand>
-    {
-        public int InvocationCount { get; private set; }
-
-        public Task Handle(VoidLoggingCommand query, CancellationToken cancellationToken = default)
-        {
-            InvocationCount++;
-            return Task.CompletedTask;
-        }
-    }
-
-    public class VoidLoggingBehavior : IPipelineBehavior<VoidLoggingCommand>
-    {
-        public List<string> Log { get; } = new();
-
-        public async Task Handle(VoidLoggingCommand input, Func<Task> next, CancellationToken cancellationToken = default)
-        {
-            Log.Add("before");
-            await next();
-            Log.Add("after");
-        }
+        ], logs);
+        Assert.Equal(1, handler.InvocationCount);
     }
 
     [Fact]
     public async Task SendVoid_WithBehavior_ChainsBehaviorAroundHandler()
     {
-        var handler = new VoidLoggingCommandHandler();
-        var behavior = new VoidLoggingBehavior();
+        var logs = new List<string>();
+        var behaviorA = new VoidLoggingBehavior("A", logs);
+        var behaviorB = new VoidLoggingBehavior("B", logs);
 
-        var services = new ServiceCollection();
-        services.AddSingleton(handler);
-        services.AddSingleton(behavior);
-        services.AddSingleton(typeof(IRequestHandler<,>), typeof(GetUserQueryHandler));
-        services.AddSingleton(typeof(IRequestHandler<LoggingQuery, int>), typeof(LoggingQueryHandler));
-        var provider = services.BuildServiceProvider();
-        var mediator = new Mediator(provider);
+        var provider = BuildContainer(behaviorA, behaviorB);
+        var mediator = provider.GetRequiredService<IMediator>();
 
+        var handler = (VoidLoggingCommandHandler)provider.GetRequiredService<IRequestHandler<VoidLoggingCommand>>();
         await mediator.Send(new VoidLoggingCommand());
 
         Assert.Equal(1, handler.InvocationCount);
-        Assert.Equal(["before", "after"], behavior.Log);
+
+        // Behaviors chain in reverse: B wraps A wraps handler
+        Assert.Equal([
+            "B-before",
+            "A-before",
+            "A-after",
+            "B-after"
+        ], logs);
     }
 
     public record UnknownQuery : IRequest<string>;
@@ -247,11 +108,8 @@ public class MediatorTests
     [Fact]
     public async Task Send_WithMissingHandler_ThrowsInvalidOperationException()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton(typeof(IRequestHandler<>), typeof(SendCommandHandler));
-        services.AddSingleton(typeof(IRequestHandler<,>), typeof(GetUserQueryHandler));
-        var provider = services.BuildServiceProvider();
-        var mediator = new Mediator(provider);
+        var provider = BuildContainer();
+        var mediator = provider.GetRequiredService<IMediator>();
 
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             mediator.Send(new UnknownQuery()));
