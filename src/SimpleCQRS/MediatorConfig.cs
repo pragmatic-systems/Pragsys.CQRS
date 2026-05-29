@@ -25,7 +25,7 @@ public class MediatorConfig(IServiceCollection Services)
 
         foreach (var assembly in targetAssemblies)
         {
-            // GetExportedTypes() is faster and safer than GetTypes() as it avoids loading 
+            // GetExportedTypes() is faster and safer than GetTypes() as it avoids loading
             // non-exported types into the current AppDomain.
             var types = assembly.GetExportedTypes();
 

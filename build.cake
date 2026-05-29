@@ -19,14 +19,14 @@ var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
 // Nuget Params
-var nugetPackageSource = Argument<string>("Source", null)			// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_SOURCE", null);			// Input from GHA to Cake
+var nugetPackageSource = Argument<string>("NuGetSource", null)			// Input from cmd args to Cake 
+	?? EnvironmentVariable<string>("INPUT_NUGET_SOURCE", null);			// Input from GHA to Cake
 
-var nugetApiKey = Argument<string>("ApiKey", null)					// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_APIKEY", null);			// Input from GHA to Cake
+var nugetApiKey = Argument<string>("NuGetApiKey", null)					// Input from cmd args to Cake 
+	?? EnvironmentVariable<string>("INPUT_NUGET_APIKEY", null);			// Input from GHA to Cake
 	
-var versionNumber = Argument<string>("VersionOverride", null)		// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_VERSIONOVERRIDE", null);	// Input from GHA to Cake
+var versionNumber = Argument<string>("NuGetVersionOverride", null)		// Input from cmd args to Cake 
+	?? EnvironmentVariable<string>("INPUT_NUGET_VERSIONOVERRIDE", null);	// Input from GHA to Cake
 	
 // Container Params
 var containerRegistry = Argument<string>("ContainerRegistry", null) 
@@ -200,7 +200,7 @@ Task("__BeginSonarScan")
 				VsCoverageReportsPath = reportPaths,
 			});
 
-			DotNetBuild("Template.TestedApi.sln");
+			DotNetBuild("*.sln");
 		});
 
 Task("__EndSonarScan")

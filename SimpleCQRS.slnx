@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/assets/">
+    <File Path="build.cake" />
+    <File Path="build.cakemix" />
+    <File Path="Directory.Build.props" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="src/SimpleCQRS/SimpleCQRS.csproj" />
   <Project Path="tests/SimpleCQRS.Tests/SimpleCQRS.Tests.csproj" Id="1b5ed8e6-654e-4a74-9adc-0d246a9a3e7c" />
 </Solution>

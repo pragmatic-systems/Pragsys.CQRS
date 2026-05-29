@@ -2,7 +2,8 @@
 
 public record UnknownQuery : IRequest<string>;
 
-public record LoggingQuery(int Value) : IRequest<int>;
+public record LoggingQuery(int Value)
+    : IRequest<int>;
 
 public class LoggingQueryHandler : IRequestHandler<LoggingQuery, int>
 {
@@ -21,9 +22,10 @@ public class LoggingQueryHandler : IRequestHandler<LoggingQuery, int>
 public class LoggingBehavior : IPipelineBehavior<LoggingQuery, int>
 {
     public string Name { get; }
+
     public List<string> Log { get; } = new();
 
-    public LoggingBehavior(string name = "A", List<string> logs = null)
+    public LoggingBehavior(string name = "A", List<string>? logs = null)
     {
         Name = name;
         Log = logs ?? new List<string>();

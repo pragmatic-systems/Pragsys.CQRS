@@ -1,8 +1,6 @@
 ﻿using System.Linq.Expressions;
-using FluentAssertions;
-using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
+using Shouldly;
 using Xunit;
 using Xunit.Sdk;
 
@@ -10,13 +8,6 @@ namespace SimpleCQRS.Tests;
 
 public class MediatorTests
 {
-    private IServiceProvider BuildContainer(params IPipelineBehavior[] pipelines)
-    {
-        var services = new ServiceCollection();
-        services.InitializeServices(pipelines);
-        return services.BuildServiceProvider();
-    }
-
     [Fact]
     public async Task Send_WithResult_PassesCancellationToken()
     {
@@ -69,17 +60,19 @@ public class MediatorTests
         var provider = BuildContainer(behaviorA, behaviorB);
         var mediator = provider.GetRequiredService<IMediator>();
 
-        await mediator.Send(new LoggingQuery(1));
+        await mediator.Send(new LoggingQuery(1), TestContext.Current.CancellationToken);
         var handler = (LoggingQueryHandler)provider.GetRequiredService<IRequestHandler<LoggingQuery, int>>();
 
         // Behaviors chain in reverse: B wraps A wraps handler
-        Assert.Equal([
+        Assert.Equal(
+            [
             "B-before",
             "A-before",
             "A-after",
             "B-after"
         ], logs);
-        Assert.Equal(1, handler.InvocationCount);
+
+        handler.InvocationCount.ShouldBe(1);
     }
 
     [Fact]
@@ -93,12 +86,13 @@ public class MediatorTests
         var mediator = provider.GetRequiredService<IMediator>();
 
         var handler = (VoidLoggingCommandHandler)provider.GetRequiredService<IRequestHandler<VoidLoggingCommand>>();
-        await mediator.Send(new VoidLoggingCommand());
+        await mediator.Send(new VoidLoggingCommand(), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, handler.InvocationCount);
 
         // Behaviors chain in reverse: B wraps A wraps handler
-        Assert.Equal([
+        Assert.Equal(
+            [
             "B-before",
             "A-before",
             "A-after",
@@ -113,58 +107,13 @@ public class MediatorTests
         var mediator = provider.GetRequiredService<IMediator>();
 
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
-            mediator.Send(new UnknownQuery()));
-    }
-}
-
-public class ExpressionTests()
-{
-    public class SomeClass
-    {
-        public Version Version { get; set; }
+            mediator.Send(new UnknownQuery(), TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task HandlerTest()
+    private IServiceProvider BuildContainer(params IPipelineBehavior[] pipelines)
     {
-        var h = Expression.Parameter(typeof(LoggingQueryHandler), "handler");
-        var r = Expression.Parameter(typeof(LoggingQuery), "request");
-        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
-
-        var handleMethod = typeof(LoggingQueryHandler).GetMethod("Handle", new[] { typeof(LoggingQuery), typeof(CancellationToken) });
-
-        MethodCallExpression expr = Expression.Call(h, handleMethod, r, ct);
-
-        var compiled = Expression.Lambda(expr, h, r, ct).Compile();
-
-        var taskResult = compiled.DynamicInvoke(new LoggingQueryHandler(), new LoggingQuery(2), CancellationToken.None);
-        var result = await (Task<int>)taskResult;
-        result.Should().Be(4);
-    }
-
-    [Fact]
-    public async Task HandlerTestAlt()
-    {
-        var compiled = BuildCompiled<LoggingQueryHandler, LoggingQuery>();
-
-        var taskResult = compiled.DynamicInvoke(new LoggingQueryHandler(), new LoggingQuery(2), CancellationToken.None);
-        var result = await (Task<int>)taskResult;
-        result.Should().Be(4);
-    }
-
-    private Delegate BuildCompiled<THandler, TRequest>()
-    {
-        var handlerType = typeof(THandler);
-        var requestType = typeof(TRequest);
-
-        var handler = Expression.Parameter(handlerType, "handler");
-        var request = Expression.Parameter(requestType, "request");
-        var ct = Expression.Parameter(typeof(CancellationToken), "ct");
-
-        var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) });
-
-        MethodCallExpression expr = Expression.Call(handler, handleMethod, request, ct);
-
-        return Expression.Lambda(expr, handler, request, ct).Compile();
+        var services = new ServiceCollection();
+        services.InitializeServices(pipelines);
+        return services.BuildServiceProvider();
     }
 }

@@ -361,7 +361,6 @@ MigrationBackup/
 
 # Local Settings
 /.sonarqube
-/.github
 /.claude
 
 # Fody - auto-generated XML schema

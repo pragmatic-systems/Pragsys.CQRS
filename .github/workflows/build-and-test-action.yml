@@ -1,0 +1,45 @@
+
+name: Build and Test Solution
+run-name: Build and Test Solution
+
+on:
+  pull_request:
+    branches:    
+      - main
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  Build-And-Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # This is necessary so it does not conflict with git-version
+
+      - name: Run cake step
+        uses: cake-build/cake-action@v3
+        with:
+          script-path: build.cake
+          target: BuildAndTest
+
+      - name: Publish Test Report with Pull Request Comment
+        uses: ctrf-io/github-test-reporter@v1
+        if: ${{ !cancelled() }}       # run this step even if previous step failed
+        with:
+          report-path: './artifacts/*.ctrf'
+          pull-request-report: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Publish Artifacts
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}       # run this step even if previous step failed
+        with:
+          name: Artifacts
+          path: ./artifacts/

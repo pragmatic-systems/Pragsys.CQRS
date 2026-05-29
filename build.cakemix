@@ -1,0 +1,8 @@
+{
+  "NugetPackages": [
+    "./src/SimpleCQRS/SimpleCQRS.csproj"
+  ],
+  "DockerPackages": [],
+  "Benchmarks": [],
+  "ApiSpecs": null
+}
