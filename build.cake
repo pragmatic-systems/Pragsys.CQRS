@@ -20,13 +20,13 @@ var configuration = Argument("configuration", "Release");
 
 // Nuget Params
 var nugetPackageSource = Argument<string>("NuGetSource", null)			// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_NUGET_SOURCE", null);			// Input from GHA to Cake
+	?? EnvironmentVariable<string>("INPUT_NUGETSOURCE", null);			// Input from GHA to Cake
 
 var nugetApiKey = Argument<string>("NuGetApiKey", null)					// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_NUGET_APIKEY", null);			// Input from GHA to Cake
+	?? EnvironmentVariable<string>("INPUT_NUGETAPIKEY", null);			// Input from GHA to Cake
 	
 var versionNumber = Argument<string>("NuGetVersionOverride", null)		// Input from cmd args to Cake 
-	?? EnvironmentVariable<string>("INPUT_NUGET_VERSIONOVERRIDE", null);	// Input from GHA to Cake
+	?? EnvironmentVariable<string>("INPUT_NUGETVERSIONOVERRIDE", null);	// Input from GHA to Cake
 	
 // Container Params
 var containerRegistry = Argument<string>("ContainerRegistry", null) 
