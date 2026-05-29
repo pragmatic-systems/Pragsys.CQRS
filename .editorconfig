@@ -1,4 +1,4 @@
-# EditorConfig for Template.TestedApi
+# EditorConfig for SimpleCQRS
 root = true
 
 [*.cs]
@@ -74,6 +74,8 @@ dotnet_diagnostic.SA1633.severity = none
 dotnet_diagnostic.SA1502.severity = suggestion
 dotnet_diagnostic.SA1313.severity = suggestion
 dotnet_diagnostic.SA1309.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1518.severity = warning
 
 [*.{cs,vb}]
