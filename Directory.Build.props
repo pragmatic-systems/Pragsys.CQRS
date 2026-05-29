@@ -4,6 +4,7 @@
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <EnableMSTestRunner>true</EnableMSTestRunner>
     <UseVSTest>false</UseVSTest>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
     <!-- StyleCop Analyzers for code style enforcement -->
