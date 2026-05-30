@@ -215,6 +215,7 @@ Task("__SonarScan")
 
 			SonarEnd(new SonarEndSettings
 			{
+				Token = sonarToken
 			});
 			Information("Sonar analysis completed successfully.");
 		});
