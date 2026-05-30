@@ -1,6 +1,6 @@
 {
   "NugetPackages": [
-    "./src/SimpleCQRS/SimpleCQRS.csproj"
+    "./src/Pragsys.CQRS/Pragsys.CQRS.csproj"
   ],
   "DockerPackages": [],
   "Benchmarks": [],

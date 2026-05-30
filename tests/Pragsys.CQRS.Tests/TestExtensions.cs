@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 
-namespace SimpleCQRS.Tests;
+namespace Pragsys.CQRS.Tests;
 
 public static class TestExtensions
 {

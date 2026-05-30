@@ -1,10 +1,9 @@
-﻿using System.Linq.Expressions;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 using Xunit.Sdk;
 
-namespace SimpleCQRS.Tests;
+namespace Pragsys.CQRS.Tests;
 
 public class MediatorTests
 {
