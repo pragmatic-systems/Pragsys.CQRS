@@ -15,6 +15,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0 # This is nescessary so it does not conflict with git-version
+      
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
 
       - name: Run cake step
         uses: cake-build/cake-action@v3
@@ -28,6 +33,7 @@ jobs:
           SonarHostUrl: ${{ vars.SONARHOST }}
           SonarProjectKey: ${{ secrets.SONAR_PROJ_KEY }}
           SonarProjectName: ${{ vars.SONAR_PROJ_NAME }}
+          SonarBranch: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v7

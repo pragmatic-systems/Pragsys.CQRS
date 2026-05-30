@@ -35,8 +35,8 @@ jobs:
           SonarOrg: ${{ vars.SONARORG }}
           SonarToken: ${{ secrets.SONARTOKEN }}
           SonarHostUrl: ${{ vars.SONARHOST }}
-          SonarProjectKey: ${{ secrets.SONAR_PROJ_KEY }}
-          SonarProjectName: ${{ vars.SONAR_PROJ_NAME }}
+          SonarProjectKey: ${{ secrets.SONAR_PROJ_KEY }}-PR
+          SonarProjectName: ${{ vars.SONAR_PROJ_NAME }}-PR
           SonarBranch: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Publish Test Report with Pull Request Comment
