@@ -16,6 +16,8 @@ public class Mediator(IServiceProvider provider)
 
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
+        request = request ?? throw new ArgumentNullException(nameof(request));
+
         try
         {
             var requestType = request.GetType();
@@ -36,7 +38,10 @@ public class Mediator(IServiceProvider provider)
 
             Func<Task<TResponse>> handlerDelegate = () =>
             {
-                return (Task<TResponse>)cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken);
+                var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
+                    ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Handler.Type);
+
+                return (Task<TResponse>)result;
             };
 
             foreach (var behavior in behaviors)
@@ -44,7 +49,10 @@ public class Mediator(IServiceProvider provider)
                 var next = handlerDelegate;
                 handlerDelegate = () =>
                 {
-                    return (Task<TResponse>)cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken);
+                    var result = cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken)
+                        ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Behaviour.Type);
+
+                    return (Task<TResponse>)result;
                 };
             }
 
@@ -60,6 +68,8 @@ public class Mediator(IServiceProvider provider)
     public async Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IRequest
     {
+        request = request ?? throw new ArgumentNullException(nameof(request));
+
         try
         {
             var requestType = request.GetType();
@@ -79,7 +89,10 @@ public class Mediator(IServiceProvider provider)
 
             Func<Task> handlerDelegate = () =>
             {
-                return (Task)cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken);
+                var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
+                    ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Handler.Type);
+
+                return (Task)result;
             };
 
             foreach (var behavior in behaviors)
@@ -87,7 +100,10 @@ public class Mediator(IServiceProvider provider)
                 var next = handlerDelegate;
                 handlerDelegate = () =>
                 {
-                    return (Task)cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken);
+                    var result = cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken)
+                        ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Behaviour.Type);
+
+                    return (Task)result;
                 };
             }
 
