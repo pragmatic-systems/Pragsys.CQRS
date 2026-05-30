@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace SimpleCQRS;
+namespace Pragsys.CQRS;
 
 public class Mediator(IServiceProvider provider)
     : IMediator

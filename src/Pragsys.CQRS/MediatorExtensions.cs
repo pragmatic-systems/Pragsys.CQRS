@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace SimpleCQRS;
+namespace Pragsys.CQRS;
 
 public static class MediatorExtensions
 {

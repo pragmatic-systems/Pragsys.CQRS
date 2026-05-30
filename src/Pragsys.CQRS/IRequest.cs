@@ -1,4 +1,4 @@
-﻿namespace SimpleCQRS;
+﻿namespace Pragsys.CQRS;
 
 public interface IBaseRequest { }
 
