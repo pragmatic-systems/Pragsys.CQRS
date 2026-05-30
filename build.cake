@@ -9,7 +9,7 @@
 // TOOLS
 ///////////////////////////////////////////////////////////////////////////////
 #tool dotnet:?package=GitVersion.Tool&version=5.12.0
-#tool nuget:?package=MSBuild.SonarQube.Runner.Tool&version=4.8.0
+#tool nuget:?package=dotnet-sonarscanner&version=11.2.1
 
 ///////////////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -54,6 +54,9 @@ var sonarProjectName = Argument<string>("SonarProjectName", null)
 var sonarHostUrl = Argument<string>("SonarHostUrl", null)
     ?? EnvironmentVariable<string>("INPUT_SONARHOSTURL", null)
 		?? "http://localhost:9000";
+
+var sonarBranch = Argument<string>("SonarBranch", null)
+    ?? EnvironmentVariable<string>("INPUT_SONARBRANCH", null);
 
 var artifactsFolder = "./artifacts";
 var packagesFolder = System.IO.Path.Combine(artifactsFolder, "packages");
@@ -132,7 +135,9 @@ Task("__SonarArgsCheck")
 			
 		if (string.IsNullOrEmpty(sonarProjectName))
 			throw new ArgumentException("SonarProjectName is required");
-			
+
+		if (string.IsNullOrEmpty(sonarBranch))
+			throw new ArgumentException("SonarBranch is required");
 	});
 
 Task("__Test")
@@ -183,7 +188,7 @@ Task("__LintCheck")
         Information("Lint check passed – no formatting changes required.");
     });
 
-Task("__BeginSonarScan")
+Task("__SonarScan")
 		.Does(() =>
 		{
 			var reportPaths = System.IO.Directory.GetFiles(artifactsFolder, "*.xml", SearchOption.AllDirectories)
@@ -194,21 +199,23 @@ Task("__BeginSonarScan")
 			{
 				Key = sonarProjectKey,
 				Name = sonarProjectName,
-				Login = sonarToken,
+				Token = sonarToken,
 				Organization = sonarOrg,
 				Url = sonarHostUrl,
 				VsCoverageReportsPath = reportPaths,
+				Branch = sonarBranch
 			});
 
-			DotNetBuild("*.sln");
-		});
+			var sln = GetFiles("*.slnx")
+				.Single()
+				.GetFilename()
+				.FullPath;
 
-Task("__EndSonarScan")
-		.Does(() =>
-		{
+			DotNetBuild(sln);
+
 			SonarEnd(new SonarEndSettings
 			{
-				Login = sonarToken,
+				Token = sonarToken
 			});
 			Information("Sonar analysis completed successfully.");
 		});
@@ -340,28 +347,31 @@ Task("BuildAndTest")
 Task("BuildAndBenchmark")
 	.IsDependentOn("__Benchmark");
 
-Task("SonarScan")
+Task("BuildAndSonarScan")
 	.IsDependentOn("__SonarArgsCheck")
 	.IsDependentOn("__Test")
 	.IsDependentOn("__Benchmark")
-	.IsDependentOn("__BeginSonarScan")
-	.IsDependentOn("__EndSonarScan");
+	.IsDependentOn("__SonarScan");
 
 Task("NugetPackAndPush")
 	.IsDependentOn("__NugetArgsCheck")
+	.IsDependentOn("__SonarArgsCheck")
 	.IsDependentOn("__VersionInfo")
 	.IsDependentOn("__LintCheck")
 	.IsDependentOn("__Test")
 	.IsDependentOn("__Benchmark")
+	.IsDependentOn("__SonarScan")
 	.IsDependentOn("__NugetPack")
 	.IsDependentOn("__NugetPush");
 
 Task("DockerPackAndPush")
 	.IsDependentOn("__ContainerArgsCheck")
+	.IsDependentOn("__SonarArgsCheck")
 	.IsDependentOn("__VersionInfo")
 	.IsDependentOn("__LintCheck")
 	.IsDependentOn("__Test")
 	.IsDependentOn("__Benchmark")
+	.IsDependentOn("__SonarScan")
 	.IsDependentOn("__DockerLogin")
 	.IsDependentOn("__DockerPack")
 	.IsDependentOn("__DockerPush");
@@ -369,10 +379,12 @@ Task("DockerPackAndPush")
 Task("FullPackAndPush")
 	.IsDependentOn("__NugetArgsCheck")
 	.IsDependentOn("__ContainerArgsCheck")
+	.IsDependentOn("__SonarArgsCheck")
 	.IsDependentOn("__VersionInfo")
 	.IsDependentOn("__LintCheck")
 	.IsDependentOn("__Test")
 	.IsDependentOn("__Benchmark")
+	.IsDependentOn("__SonarScan")
 	.IsDependentOn("__NugetPack")
 	.IsDependentOn("__DockerLogin")
 	.IsDependentOn("__DockerPack")
