@@ -37,7 +37,7 @@ jobs:
           SonarHostUrl: ${{ vars.SONARHOST }}
           SonarProjectKey: ${{ secrets.SONAR_PROJ_KEY }}-PR
           SonarProjectName: ${{ vars.SONAR_PROJ_NAME }}-PR
-          SonarBranch: ${{ steps.extract_branch.outputs.branch }}
+          SonarBranch: main # NOTE: Free sonar so we're using "main" and a build scan project.
 
       - name: Publish Test Report with Pull Request Comment
         uses: ctrf-io/github-test-reporter@v1
@@ -46,6 +46,7 @@ jobs:
           report-path: './artifacts/*.ctrf'
           pull-request-report: true
           overwrite-comment: true
+          always-latest-comment: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
