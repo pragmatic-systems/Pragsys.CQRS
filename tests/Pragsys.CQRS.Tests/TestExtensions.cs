@@ -12,10 +12,9 @@ public static class TestExtensions
 {
     public static IServiceCollection InitializeServices(this IServiceCollection services, params IPipelineBehavior[] pipelines)
     {
-        services.AddMediatR(cfg =>
+        services.AddCqrs(cfg =>
         {
-            cfg.RegisterServicesFromAssemblies(
-                ServiceLifetime.Singleton,
+            cfg.RegisterSingletonServicesFromAssemblies(
                 typeof(MediatorTests).Assembly);
         });
 

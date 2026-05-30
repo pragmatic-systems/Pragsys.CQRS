@@ -16,7 +16,7 @@ public class Mediator(IServiceProvider provider)
 
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        request = request ?? throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 
         try
         {
@@ -68,7 +68,7 @@ public class Mediator(IServiceProvider provider)
     public async Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IRequest
     {
-        request = request ?? throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 
         try
         {
