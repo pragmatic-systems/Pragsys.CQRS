@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Pragsys.CQRS;
@@ -61,7 +62,7 @@ public class Mediator(IServiceProvider provider)
         catch (TargetInvocationException ex)
         {
             // Unpack the reflection error here.
-            throw ex.InnerException ?? ex;
+            ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
         }
     }
 
@@ -112,7 +113,7 @@ public class Mediator(IServiceProvider provider)
         catch (TargetInvocationException ex)
         {
             // Unpack the reflection error here.
-            throw ex.InnerException ?? ex;
+            ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
         }
     }
 

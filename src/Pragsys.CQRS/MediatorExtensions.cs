@@ -4,6 +4,12 @@ namespace Pragsys.CQRS;
 
 public static class MediatorExtensions
 {
+    public static IServiceCollection AddCqrs(this IServiceCollection services)
+    {
+        services.AddSingleton<IMediator, Mediator>();
+        return services;
+    }
+
     public static IServiceCollection AddCqrs(this IServiceCollection services, Action<MediatorConfig> config)
     {
         services.AddSingleton<IMediator, Mediator>();
