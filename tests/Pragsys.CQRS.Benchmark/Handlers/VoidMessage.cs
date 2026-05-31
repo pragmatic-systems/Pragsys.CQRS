@@ -16,7 +16,6 @@ public class VoidMessageHandler : IRequestHandler<VoidMessage>
     }
 }
 
-
 public class VoidPipelineMessage : IRequest<int>
 {
     public VoidPipelineMessage(int count)

@@ -6,7 +6,7 @@ namespace Pragsys.CQRS.Benchmark.Benchmarks;
 
 public class MediatorBenchmark
 {
-    private IServiceProvider _provider;
+    private readonly IServiceProvider _provider;
 
     public MediatorBenchmark()
     {
