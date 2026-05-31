@@ -40,7 +40,7 @@ public class Mediator(IServiceProvider provider)
             Func<Task<TResponse>> handlerDelegate = () =>
             {
                 var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
-                    ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Handler.Type);
+                    ?? throw new CqrsException($"Cannot resolve handler method for Handler: {cacheEntry.Handler.Type.FullName}", cacheEntry.Handler.Type);
 
                 return (Task<TResponse>)result;
             };
@@ -51,7 +51,7 @@ public class Mediator(IServiceProvider provider)
                 handlerDelegate = () =>
                 {
                     var result = cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken)
-                        ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Behaviour.Type);
+                        ?? throw new CqrsException($"Cannot resolve handler method for Behaviour: {cacheEntry.Behaviour.Type.FullName}", cacheEntry.Behaviour.Type);
 
                     return (Task<TResponse>)result;
                 };
@@ -98,7 +98,7 @@ public class Mediator(IServiceProvider provider)
             Func<Task> handlerDelegate = () =>
             {
                 var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
-                    ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Handler.Type);
+                    ?? throw new CqrsException($"Cannot resolve handler method for Handler: {cacheEntry.Handler.Type.FullName}", cacheEntry.Handler.Type);
 
                 return (Task)result;
             };
@@ -109,7 +109,7 @@ public class Mediator(IServiceProvider provider)
                 handlerDelegate = () =>
                 {
                     var result = cacheEntry.Behaviour.Method.DynamicInvoke(behavior, request, next, cancellationToken)
-                        ?? throw new InvalidOperationException("Cannot resolve handler for " + cacheEntry.Behaviour.Type);
+                        ?? throw new CqrsException($"Cannot resolve handler method for Behaviour: {cacheEntry.Behaviour.Type.FullName}", cacheEntry.Behaviour.Type);
 
                     return (Task)result;
                 };
@@ -140,7 +140,8 @@ public class Mediator(IServiceProvider provider)
         var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
 
         var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) })
-            ?? throw new InvalidOperationException("Cannot resolve Handle method for type: " + handlerType.FullName);
+            ?? throw new CqrsException($"Cannot resolve Handle method for Handler: {handlerType.FullName}", handlerType);
+
         MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, ctParam);
         var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, ctParam).Compile();
 
@@ -155,7 +156,7 @@ public class Mediator(IServiceProvider provider)
         var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
 
         var handleMethod = handlerType.GetMethod("Handle", new[] { requestType, typeof(CancellationToken) })
-            ?? throw new InvalidOperationException("Cannot resolve Handle method for type: " + handlerType.FullName);
+            ?? throw new CqrsException($"Cannot resolve Handle method for Handler: {handlerType.FullName}", handlerType);
 
         MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, ctParam);
         var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, ctParam).Compile();
@@ -165,39 +166,39 @@ public class Mediator(IServiceProvider provider)
 
     private static MediatorMap GetBehaviourMap(Type requestType, Type responseType)
     {
-        var handlerType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
+        var behaviourType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
         var nextType = typeof(Func<>).MakeGenericType(typeof(Task<>).MakeGenericType(responseType));
 
-        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var handlerParam = Expression.Parameter(behaviourType, "handler");
         var requestParam = Expression.Parameter(requestType, "input");
         var nextParam = Expression.Parameter(nextType, "next");
         var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
 
-        var handleMethod = handlerType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) })
-            ?? throw new InvalidOperationException("Cannot resolve Handle method for type: " + handlerType.FullName);
+        var handleMethod = behaviourType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) })
+            ?? throw new CqrsException($"Cannot resolve Handle method for Behaviour: {behaviourType.FullName}", behaviourType);
 
         MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, nextParam, ctParam);
         var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, nextParam, ctParam).Compile();
 
-        return new MediatorMap(handlerType, handlerDelegate);
+        return new MediatorMap(behaviourType, handlerDelegate);
     }
 
     private static MediatorMap GetBehaviourMap(Type requestType)
     {
-        var handlerType = typeof(IPipelineBehavior<>).MakeGenericType(requestType);
+        var behaviourType = typeof(IPipelineBehavior<>).MakeGenericType(requestType);
         var nextType = typeof(Func<>).MakeGenericType(typeof(Task));
 
-        var handlerParam = Expression.Parameter(handlerType, "handler");
+        var handlerParam = Expression.Parameter(behaviourType, "handler");
         var requestParam = Expression.Parameter(requestType, "input");
         var nextParam = Expression.Parameter(nextType, "next");
         var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
 
-        var handleMethod = handlerType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) })
-            ?? throw new InvalidOperationException("Cannot resolve Handle method for type: " + handlerType.FullName);
+        var handleMethod = behaviourType.GetMethod("Handle", new Type[] { requestType, nextType, typeof(CancellationToken) })
+            ?? throw new CqrsException($"Cannot resolve Handle method for Behaviour: {behaviourType.FullName}", behaviourType);
 
         MethodCallExpression expr = Expression.Call(handlerParam, handleMethod, requestParam, nextParam, ctParam);
         var handlerDelegate = Expression.Lambda(expr, handlerParam, requestParam, nextParam, ctParam).Compile();
 
-        return new MediatorMap(handlerType, handlerDelegate);
+        return new MediatorMap(behaviourType, handlerDelegate);
     }
 }
