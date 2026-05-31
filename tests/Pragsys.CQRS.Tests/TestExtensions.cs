@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 
@@ -10,12 +6,12 @@ namespace Pragsys.CQRS.Tests;
 
 public static class TestExtensions
 {
-    public static IServiceCollection InitializeServices(this IServiceCollection services, params IPipelineBehavior[] pipelines)
+    public static IServiceCollection InitializeTestServices(this IServiceCollection services, params IPipelineBehavior[] pipelines)
     {
         services.AddCqrs(cfg =>
         {
-            cfg.RegisterSingletonServicesFromAssemblies(
-                typeof(MediatorTests).Assembly);
+            cfg.RegisterServicesFromAssemblies(
+                new[] { typeof(MediatorTests).Assembly }, ServiceLifetime.Singleton);
         });
 
         foreach (var pipeline in pipelines.Reverse())

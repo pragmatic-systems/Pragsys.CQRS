@@ -112,7 +112,7 @@ public class MediatorTests
     private IServiceProvider BuildContainer(params IPipelineBehavior[] pipelines)
     {
         var services = new ServiceCollection();
-        services.InitializeServices(pipelines);
+        services.InitializeTestServices(pipelines);
         return services.BuildServiceProvider();
     }
 }

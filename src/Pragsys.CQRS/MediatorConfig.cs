@@ -13,22 +13,7 @@ public class MediatorConfig
         _services = services;
     }
 
-    public void RegisterServicesFromAssemblies(params Assembly[] targetAssemblies)
-    {
-        RegisterServicesFromAssemblies(targetAssemblies, ServiceLifetime.Transient);
-    }
-
-    public void RegisterSingletonServicesFromAssemblies(params Assembly[] targetAssemblies)
-    {
-        RegisterServicesFromAssemblies(targetAssemblies, ServiceLifetime.Singleton);
-    }
-
-    public void RegisterScopedServicesFromAssemblies(params Assembly[] targetAssemblies)
-    {
-        RegisterServicesFromAssemblies(targetAssemblies, ServiceLifetime.Scoped);
-    }
-
-    private void RegisterServicesFromAssemblies(Assembly[] targetAssemblies, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
+    public void RegisterServicesFromAssemblies(Assembly[] targetAssemblies, ServiceLifetime serviceLifetime)
     {
         ArgumentNullException.ThrowIfNull(targetAssemblies);
 
@@ -71,5 +56,13 @@ public class MediatorConfig
                 }
             }
         }
+    }
+}
+
+public static class MediatorConfigExtensions
+{
+    public static void RegisterServicesFromAssemblies(this MediatorConfig config, params Assembly[] targetAssemblies)
+    {
+        config.RegisterServicesFromAssemblies(targetAssemblies, ServiceLifetime.Transient);
     }
 }
