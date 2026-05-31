@@ -349,6 +349,7 @@ Task("BuildAndBenchmark")
 
 Task("BuildAndSonarScan")
 	.IsDependentOn("__SonarArgsCheck")
+	.IsDependentOn("__LintCheck")
 	.IsDependentOn("__Test")
 	.IsDependentOn("__Benchmark")
 	.IsDependentOn("__SonarScan");
