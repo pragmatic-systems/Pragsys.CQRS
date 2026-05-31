@@ -7,5 +7,6 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="src/Pragsys.CQRS/Pragsys.CQRS.csproj" />
+  <Project Path="tests/Pragsys.CQRS.Benchmark/Pragsys.CQRS.Benchmark.csproj" />
   <Project Path="tests/Pragsys.CQRS.Tests/Pragsys.CQRS.Tests.csproj" Id="1b5ed8e6-654e-4a74-9adc-0d246a9a3e7c" />
 </Solution>

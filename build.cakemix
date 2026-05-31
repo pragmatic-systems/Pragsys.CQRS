@@ -3,6 +3,8 @@
     "./src/Pragsys.CQRS/Pragsys.CQRS.csproj"
   ],
   "DockerPackages": [],
-  "Benchmarks": [],
+  "Benchmarks": [
+    "./tests/Pragsys.CQRS.Benchmark/Pragsys.CQRS.Benchmark.csproj"
+  ],
   "ApiSpecs": null
 }
