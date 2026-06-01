@@ -11,8 +11,7 @@ public class LoggingQueryHandler : IRequestHandler<LoggingQuery, int>
 
     public Task<int> Handle(LoggingQuery query, CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-            throw new OperationCanceledException();
+        cancellationToken.ThrowIfCancellationRequested();
 
         InvocationCount++;
         return Task.FromResult(query.Value * 2);
@@ -48,8 +47,7 @@ public class VoidLoggingCommandHandler : IRequestHandler<VoidLoggingCommand>
 
     public Task Handle(VoidLoggingCommand query, CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-            throw new OperationCanceledException();
+        cancellationToken.ThrowIfCancellationRequested();
 
         InvocationCount++;
         return Task.CompletedTask;

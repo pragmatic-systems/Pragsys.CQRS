@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
-using Pragsys.CQRS.Benchmark.Benchmarks;
 
 namespace Pragsys.CQRS.Benchmark;
 
