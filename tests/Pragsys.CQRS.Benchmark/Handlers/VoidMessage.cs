@@ -1,6 +1,5 @@
 ﻿using Pragsys.CQRS;
 
-
 namespace Pragsys.CQRS.Benchmark.Handlers;
 
 public class VoidMessage : IRequest
