@@ -16,6 +16,7 @@ public class MediatorBenchmark
             cfg.RegisterServicesFromAssemblies(typeof(MediatorBenchmark).Assembly);
         });
 
+        services.AddTransient<IPipelineBehavior<VoidPipelineMessage>, VoidPipelineBehaviourHandler>();
         services.AddTransient<IPipelineBehavior<EchoPipelineMessage, int>, EchoPipelineBehaviourHandler>();
 
         _provider = services.BuildServiceProvider();

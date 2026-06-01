@@ -31,7 +31,7 @@ public class LoggingBehavior : IPipelineBehavior<LoggingQuery, int>
         Log = logs ?? new List<string>();
     }
 
-    public async Task<int> Handle(LoggingQuery input, Func<Task<int>> next, CancellationToken cancellationToken = default)
+    public async Task<int> Handle(LoggingQuery input, RequestHandlerDelegate<int> next, CancellationToken cancellationToken = default)
     {
         Log.Add($"{Name}-before");
         var result = await next();
@@ -68,7 +68,7 @@ public class VoidLoggingBehavior : IPipelineBehavior<VoidLoggingCommand>
 
     public List<string> Log { get; }
 
-    public async Task Handle(VoidLoggingCommand input, Func<Task> next, CancellationToken cancellationToken = default)
+    public async Task Handle(VoidLoggingCommand input, RequestHandlerDelegate next, CancellationToken cancellationToken = default)
     {
         Log.Add($"{Name}-before");
         await next();

@@ -21,7 +21,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
             var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
             var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
 
-            Func<Task<TResponse>> handlerDelegate = () =>
+            RequestHandlerDelegate<TResponse> handlerDelegate = () =>
             {
                 var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
                     ?? throw new CqrsException($"Cannot resolve handler method for Handler: {cacheEntry.Handler.Type.FullName}", cacheEntry.Handler.Type);
@@ -71,7 +71,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
             var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
             var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
 
-            Func<Task> handlerDelegate = () =>
+            RequestHandlerDelegate handlerDelegate = () =>
             {
                 var result = cacheEntry.Handler.Method.DynamicInvoke(handler, request, cancellationToken)
                     ?? throw new CqrsException($"Cannot resolve handler method for Handler: {cacheEntry.Handler.Type.FullName}", cacheEntry.Handler.Type);

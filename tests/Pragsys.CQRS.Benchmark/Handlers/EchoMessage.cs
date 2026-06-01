@@ -34,7 +34,7 @@ public class EchoPipelineMessageHandler : IRequestHandler<EchoPipelineMessage, i
 
 public class EchoPipelineBehaviourHandler : IPipelineBehavior<EchoPipelineMessage, int>
 {
-    public Task<int> Handle(EchoPipelineMessage input, Func<Task<int>> next, CancellationToken cancellationToken = default)
+    public Task<int> Handle(EchoPipelineMessage input, RequestHandlerDelegate<int> next, CancellationToken cancellationToken = default)
     {
         return next();
     }

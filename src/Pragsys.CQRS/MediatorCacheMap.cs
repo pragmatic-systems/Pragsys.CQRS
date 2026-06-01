@@ -72,7 +72,7 @@ public class MediatorCacheMap
     private static MediatorMap GetBehaviourMap(Type requestType, Type responseType)
     {
         var behaviourType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, responseType);
-        var nextType = typeof(Func<>).MakeGenericType(typeof(Task<>).MakeGenericType(responseType));
+        var nextType = typeof(RequestHandlerDelegate<>).MakeGenericType(responseType);
 
         var behaviourParam = Expression.Parameter(behaviourType, "handler");
         var requestParam = Expression.Parameter(requestType, "input");
@@ -91,7 +91,7 @@ public class MediatorCacheMap
     private static MediatorMap GetBehaviourMap(Type requestType)
     {
         var behaviourType = typeof(IPipelineBehavior<>).MakeGenericType(requestType);
-        var nextType = typeof(Func<>).MakeGenericType(typeof(Task));
+        var nextType = typeof(RequestHandlerDelegate);
 
         var behaviourParam = Expression.Parameter(behaviourType, "handler");
         var requestParam = Expression.Parameter(requestType, "input");

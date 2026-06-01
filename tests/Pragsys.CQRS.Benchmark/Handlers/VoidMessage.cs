@@ -1,4 +1,7 @@
-﻿namespace Pragsys.CQRS.Benchmark.Handlers;
+﻿using Pragsys.CQRS;
+
+
+namespace Pragsys.CQRS.Benchmark.Handlers;
 
 public class VoidMessage : IRequest
 {
@@ -16,7 +19,7 @@ public class VoidMessageHandler : IRequestHandler<VoidMessage>
     }
 }
 
-public class VoidPipelineMessage : IRequest<int>
+public class VoidPipelineMessage : IRequest
 {
     public VoidPipelineMessage(int count)
         => Count = count;
@@ -24,17 +27,17 @@ public class VoidPipelineMessage : IRequest<int>
     public int Count { get; set; }
 }
 
-public class VoidPipelineMessageHandler : IRequestHandler<VoidPipelineMessage, int>
+public class VoidPipelineMessageHandler : IRequestHandler<VoidPipelineMessage>
 {
-    public Task<int> Handle(VoidPipelineMessage request, CancellationToken cancellationToken = default)
+    public Task Handle(VoidPipelineMessage request, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(request.Count);
     }
 }
 
-public class VoidPipelineBehaviourHandler : IPipelineBehavior<VoidPipelineMessage, int>
+public class VoidPipelineBehaviourHandler : IPipelineBehavior<VoidPipelineMessage>
 {
-    public Task<int> Handle(VoidPipelineMessage input, Func<Task<int>> next, CancellationToken cancellationToken = default)
+    public Task Handle(VoidPipelineMessage input, RequestHandlerDelegate next, CancellationToken cancellationToken = default)
     {
         return next();
     }
