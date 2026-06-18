@@ -13,6 +13,9 @@ A Simple CQRS implementation that mimics the MediatR interfaces.
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=pragmatic-systems_Pragsys.CQRS&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=pragmatic-systems_Pragsys.CQRS)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=pragmatic-systems_Pragsys.CQRS&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=pragmatic-systems_Pragsys.CQRS)
 
+## Download
+Available on NuGet - https://www.nuget.org/packages/Pragsys.CQRS/
+
 ## Features
 * Request/Response Handlers
 * Request/Void Handlers

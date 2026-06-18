@@ -18,6 +18,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
 
             var cacheEntry = cacheMap.GetOrAdd(requestType, responseType);
 
+            // Transient lifespan here - can't cache and re-use.
             var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
             var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
 
@@ -56,7 +57,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
                 throw oce;  // preserve exact cancellation semantics
             }
 
-            // Unpack the reflection error here.
+            // Unpack the reflection error here. (Throw to pass sonar scan)
             ExceptionDispatchInfo.Capture(inner ?? ex).Throw();
             throw;
         }
@@ -73,6 +74,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
 
             var cacheEntry = cacheMap.GetOrAdd(requestType);
 
+            // Transient lifespan here - can't cache and re-use.
             var handler = provider.GetRequiredService(cacheEntry.Handler.Type);
             var behaviors = provider.GetServices(cacheEntry.Behaviour.Type).Reverse();
 
@@ -87,6 +89,9 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
 
             foreach (var behavior in behaviors)
             {
+                if (behavior == null)
+                    continue;
+
                 var next = handlerDelegate;
                 handlerDelegate = () =>
                 {
@@ -109,7 +114,7 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
                 throw oce;  // preserve exact cancellation semantics
             }
 
-            // Unpack the reflection error here.
+            // Unpack the reflection error here. (Throw to pass sonar scan)
             ExceptionDispatchInfo.Capture(inner ?? ex).Throw();
             throw;
         }
