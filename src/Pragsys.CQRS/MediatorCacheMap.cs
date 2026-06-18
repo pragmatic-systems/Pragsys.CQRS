@@ -57,8 +57,7 @@ public class MediatorCacheMap
             callExpr,
             handlerParamObj,
             requestParamObj,
-            ctParamObj
-        );
+            ctParamObj);
 
         var handlerDelegate = lambdaExpr.Compile();
 
@@ -85,8 +84,7 @@ public class MediatorCacheMap
             callExpr,
             handlerParamObj,
             requestParamObj,
-            ctParamObj
-        );
+            ctParamObj);
 
         var handlerDelegate = lambdaExpr.Compile();
 
@@ -118,8 +116,7 @@ public class MediatorCacheMap
             behaviourParamObj,
             inputParamObj,
             requestNextObj,
-            ctParamObj
-        );
+            ctParamObj);
 
         var handlerDelegate = lambdaExpr.Compile();
 
@@ -151,8 +148,7 @@ public class MediatorCacheMap
             behaviourParamObj,
             inputParamObj,
             requestNextObj,
-            ctParamObj
-        );
+            ctParamObj);
 
         var handlerDelegate = lambdaExpr.Compile();
 
