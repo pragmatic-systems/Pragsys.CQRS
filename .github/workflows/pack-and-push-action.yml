@@ -1,6 +1,10 @@
 name: Pack and Push Solution
 run-name: Pack and Push Solution
 
+# Disable husky install on restore
+env:
+  HUSKY: '0'
+
 on:
   workflow_dispatch:
 

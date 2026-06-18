@@ -1,0 +1,15 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Pre CHeck for betterleaks.
+if ! command -v betterleaks >/dev/null 2>&1; then
+	echo ""
+	echo "pre-commit: 'betterleaks' is not installed or not on your PATH."
+	echo "Install it and restart shell."
+	echo "    Windows : winget install Betterleaks.Betterleaks"
+	echo "    MacOS : brew install betterleaks"
+	echo "    Linus : sudo dnf install betterleaks"
+	exit 1
+fi
+
+dotnet husky run
