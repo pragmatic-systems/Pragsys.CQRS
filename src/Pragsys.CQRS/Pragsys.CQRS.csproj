@@ -31,4 +31,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
+  <!-- Install Husky.Net githooks on restore. Forces secret scan / format. -->
+  <Target Name="RestoreDotnetTools" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(HUSKY)' != '0'">
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." ContinueOnError="true" />
+    <Exec Command="dotnet husky install" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." ContinueOnError="true" />
+  </Target>
+
 </Project>

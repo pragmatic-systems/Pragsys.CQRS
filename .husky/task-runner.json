@@ -1,0 +1,15 @@
+{
+  "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+  "tasks": [
+    {
+      "name": "secret-scan",
+      "command": "betterleaks",
+      "args": [ "git", "--no-banner", "--redact", "--staged", "--verbose", "." ]
+    },
+    {
+      "name": "format",
+      "command": "dotnet",
+      "args": [ "format", "--verify-no-changes", "--no-restore" ]
+    }
+  ]
+}
