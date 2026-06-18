@@ -1,11 +1,8 @@
-
 name: Pack and Push Solution
 run-name: Pack and Push Solution
 
 on:
-  push:
-    branches:    
-      - main
+  workflow_dispatch:
 
 jobs:
   Pack-And-Push:
