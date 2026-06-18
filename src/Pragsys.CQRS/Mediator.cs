@@ -32,6 +32,9 @@ public class Mediator(IServiceProvider provider, MediatorCacheMap cacheMap)
 
             foreach (var behavior in behaviors)
             {
+                if (behavior == null)
+                    continue;
+
                 var next = handlerDelegate;
                 handlerDelegate = () =>
                 {
